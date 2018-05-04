@@ -1,4 +1,7 @@
 use super::{RemoteIP};
+use super::super::Config;
+
+use rocket::State;
 use rocket::request::{Form};
 use std::error::Error;
 
@@ -24,7 +27,7 @@ pub struct TokenRequest {
 }
 
 #[post("/token", data = "<form>")]
-pub fn handler(form: Form<TokenRequest>, ip: RemoteIP) -> Result<Custom<String>, Box<Error>> {
+pub fn handler(form: Form<TokenRequest>, ip: RemoteIP, cfg: State<Config>) -> Result<Custom<String>, Box<Error>> {
   let req = form.get();
 
   let token = req.assertion.replace("Bearer ", "");
@@ -34,7 +37,7 @@ pub fn handler(form: Form<TokenRequest>, ip: RemoteIP) -> Result<Custom<String>,
   let jwt_grant = "urn:ietf:params:oauth:grant-type:jwt-bearer";
 
   let validation = Validation::default();
-  let decoded = decode::<JwtClaims>(&token, "BbZJjyoXAdr8BUZuiKKARWimKfrSmQ6fv8kZ7Offf".as_ref(), &validation);
+  let decoded = decode::<JwtClaims>(&token, cfg.jwt_secret.as_ref(), &validation);
 
   info!("TOKEN {:?}", decoded);
 
@@ -44,7 +47,7 @@ pub fn handler(form: Form<TokenRequest>, ip: RemoteIP) -> Result<Custom<String>,
 
   let claims = decoded.unwrap().claims;
 
-  let token = encode(&Header::default(), &claims, "BbZJjyoXAdr8BUZuiKKARWimKfrSmQ6fv8kZ7Offf".as_ref())?;
+  let token = encode(&Header::default(), &claims, cfg.jwt_secret.as_ref())?;
 
   let response = json!({
     "access_token": token,

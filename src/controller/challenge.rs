@@ -1,4 +1,5 @@
 use super::{RemoteIP, DB};
+use super::super::Config;
 
 use reqwest;
 
@@ -6,6 +7,7 @@ use jwt::{encode, Header};
 
 use std::error::Error;
 
+use rocket::State;
 use rocket::response::status::{Custom};
 use rocket::http::Status;
 use rocket::request::{Form};
@@ -38,13 +40,16 @@ struct ChallengeRequest {
 }
 
 #[post("/authz/challenge", data = "<form>")]
-fn handler(form: Form<ChallengeRequest>, ip: RemoteIP, conn: DB, mut cookies: Cookies) -> Result<Custom<String>, Box<Error>> {
+fn handler(form: Form<ChallengeRequest>, ip: RemoteIP, conn: DB, mut cookies: Cookies, cfg: State<Config>) -> Result<Custom<String>, Box<Error>> {
   info!("Login from {:?}; {:?}", ip.0, form);
 
   let req = form.get();
 
   let client = reqwest::Client::new();
-  let res = client.post("http://api-stage.shoptiques.net/v1/auth/login")
+
+  let endpoint = format!("{}/auth/login", cfg.api_root);
+
+  let res = client.post(&endpoint)
     .header(UsernameHeader(req.username.clone()))
     .header(PasswordHeader(req.password.clone()))
     .header(AppIdHeader("123".to_owned()))
@@ -91,7 +96,7 @@ fn handler(form: Form<ChallengeRequest>, ip: RemoteIP, conn: DB, mut cookies: Co
     isManager: employee.get("manager")
   };
 
-  let token = encode(&Header::default(), &claims, "BbZJjyoXAdr8BUZuiKKARWimKfrSmQ6fv8kZ7Offf".as_ref())?;
+  let token = encode(&Header::default(), &claims, cfg.jwt_secret.as_ref())?;
 
   let cookie = Cookie::build("token", token)
     .path("/")

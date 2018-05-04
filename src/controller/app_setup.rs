@@ -1,5 +1,7 @@
 use super::{RemoteIP, DB};
+use super::super::Config;
 
+use rocket::State;
 use jwt::{encode, Header};
 use rocket_contrib::Json;
 use std::error::Error;
@@ -23,7 +25,7 @@ struct JwtClaims {
 
 
 #[post("/authz/appsetup", format = "application/json", data = "<request>")]
-pub fn handler(request: Json<AppSetupRequest>, conn: DB, ip: RemoteIP) -> Result<Custom<String>, Box<Error>> {
+pub fn handler(request: Json<AppSetupRequest>, conn: DB, ip: RemoteIP, cfg: State<Config>) -> Result<Custom<String>, Box<Error>> {
   let mut org_code = request.0.orgCode.split("/");
   let org_id = org_code.next();
 
@@ -70,7 +72,7 @@ pub fn handler(request: Json<AppSetupRequest>, conn: DB, ip: RemoteIP) -> Result
     registerCode: register_code.to_owned()
   };
 
-  let token = encode(&Header::default(), &claims, "BbZJjyoXAdr8BUZuiKKARWimKfrSmQ6fv8kZ7Offf".as_ref())?;
+  let token = encode(&Header::default(), &claims, cfg.jwt_secret.as_ref())?;
 
   let location: String = register.get("location");
   let name: String = register.get("name");
