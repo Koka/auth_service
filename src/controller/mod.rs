@@ -8,20 +8,20 @@ use rocket::request::{self, Request, FromRequest};
 use rocket::{Outcome, State};
 use rocket::http::Status;
 
-use std::net::IpAddr;
+use std::net::SocketAddr;
 use r2d2::{Pool, PooledConnection};
 use r2d2_postgres::{PostgresConnectionManager};
 use postgres::Connection;
 
 use std::ops::Deref;
 
-pub struct RemoteIP(Option<IpAddr>);
+pub struct RemoteIP(Option<SocketAddr>);
 
 impl<'a, 'r> FromRequest<'a, 'r> for RemoteIP {
   type Error = ();
 
   fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
-    let ip = request.client_ip();
+    let ip = request.remote();
     return Outcome::Success(RemoteIP(ip));
   }
 }
